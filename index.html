@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="sq">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Aventura e Fjalëve - 4 Kategoritë</title>
+    
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui-touch-punch/0.2.3/jquery.ui.touch-punch.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Quicksand:wght@700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg: #f8fafc;
+            --main-color: #ec4899;
+            --c-school: #3b82f6;
+            --c-home: #8b5cf6;
+            --c-animal: #f97316;
+            --c-people: #10b981;
+            --text-dark: #334155;
+        }
+
+        body {
+            background-color: var(--bg);
+            font-family: 'Quicksand', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 10px;
+            overflow-x: hidden;
+            overscroll-behavior: contain;
+        }
+
+        .header-info {
+            display: flex; gap: 10px; margin-bottom: 5px; width: 100%; max-width: 800px; justify-content: space-between;
+        }
+
+        .info-box {
+            background: white; padding: 8px 18px; border-radius: 15px; border: 2px solid var(--main-color);
+            font-weight: bold; font-size: 1rem; color: var(--text-dark);
+        }
+
+        h1 { font-family: 'Fredoka One', cursive; color: var(--main-color); font-size: 1.8rem; margin: 5px 0; text-align: center; }
+
+        .instruction {
+            font-weight: 700; color: #be185d; margin-bottom: 15px; font-size: 1.2rem;
+            background: #fdf2f8; padding: 10px 20px; border-radius: 15px; text-align: center;
+            border: 1px solid #fbcfe8;
+        }
+
+        .word-bank {
+            background: #fce7f3; border: 3px dashed #f472b6; border-radius: 20px;
+            padding: 15px; width: 95%; max-width: 800px; min-height: 100px;
+            display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-bottom: 15px;
+        }
+
+        .word-chip {
+            background: white; border: 3px solid var(--main-color); border-radius: 12px;
+            padding: 10px 16px; font-size: 1.1rem; font-weight: bold; color: var(--text-dark);
+            box-shadow: 0 4px 0 var(--main-color); display: flex; align-items: center;
+            cursor: grab; touch-action: none; z-index: 10;
+        }
+
+        .zones-container {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+            width: 95%;
+            max-width: 500px;
+        }
+        @media (min-width: 600px) {
+            .zones-container {
+                grid-template-columns: 1fr 1fr;
+                max-width: 800px;
+            }
+        }
+
+        .zone {
+            background: white; border-radius: 20px;
+            padding: 12px; box-shadow: 0 4px 0 #cbd5e1;
+            display: none; /* Initially hidden, JS will show them */
+        }
+
+        .drop-area {
+            min-height: 80px; display: flex; flex-wrap: wrap; gap: 8px;
+            border: 2px solid #f1f5f9; border-radius: 15px; padding: 8px;
+            background: #f8fafc;
+        }
+
+        .drop-area.hover { filter: brightness(0.95); }
+
+        .btn-check {
+            font-family: 'Fredoka One', cursive; background: var(--main-color); color: white;
+            border: none; padding: 15px 45px; font-size: 1.4rem; border-radius: 50px;
+            box-shadow: 0 5px 0 #db2777; cursor: pointer; margin-top: 15px; margin-bottom: 30px;
+        }
+
+        .overlay {
+            display: none; position: fixed; inset: 0; background: rgba(30, 41, 59, 0.98);
+            z-index: 1000; flex-direction: column; align-items: center; justify-content: center;
+            color: white; text-align: center; padding: 20px;
+        }
+        .overlay.show { display: flex; }
+
+        .music-control {
+            position: fixed; bottom: 10px; right: 10px; background: white;
+            border-radius: 50%; width: 40px; height: 40px; display: flex;
+            align-items: center; justify-content: center; border: 2px solid var(--main-color);
+            cursor: pointer; z-index: 2000; font-size: 1.2rem;
+        }
+    </style>
+</head>
+<body>
+
+    <audio id="bgMusic" loop>
+        <source src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3" type="audio/mpeg">
+    </audio>
+
+    <div class="music-control" onclick="toggleMusic()" id="musicBtn">🔇</div>
+
+    <div class="header-info">
+        <div class="info-box">NIVELI: <span id="lvl-display">1</span></div>
+        <div class="info-box">KOHA: <span id="time-display">--</span></div>
+    </div>
+
+    <h1>🧠 SUPER LOJA E FJALËVE</h1>
+    <div class="instruction">Ndaj fjalët në grupet e duhura!</div>
+
+    <div class="word-bank" id="word-bank"></div>
+
+    <div class="zones-container">
+        <div class="zone" id="wrap-school" style="border: 2px solid var(--c-school);">
+            <div style="color: var(--c-school); font-weight: bold; margin-bottom: 10px; text-align: center;">🎒 MJETE SHKOLLORE</div>
+            <div class="drop-area" id="zone-school" data-cat="school"></div>
+        </div>
+
+        <div class="zone" id="wrap-home" style="border: 2px solid var(--c-home);">
+            <div style="color: var(--c-home); font-weight: bold; margin-bottom: 10px; text-align: center;">🏠 SENDE SHTËPIE</div>
+            <div class="drop-area" id="zone-home" data-cat="home"></div>
+        </div>
+
+        <div class="zone" id="wrap-animals" style="border: 2px solid var(--c-animal);">
+            <div style="color: var(--c-animal); font-weight: bold; margin-bottom: 10px; text-align: center;">🐾 KAFSHËT</div>
+            <div class="drop-area" id="zone-animals" data-cat="animals"></div>
+        </div>
+
+        <div class="zone" id="wrap-people" style="border: 2px solid var(--c-people);">
+            <div style="color: var(--c-people); font-weight: bold; margin-bottom: 10px; text-align: center;">👤 NJERËZIT</div>
+            <div class="drop-area" id="zone-people" data-cat="people"></div>
+        </div>
+    </div>
+
+    <button class="btn-check" onclick="checkAnswers()">KONTROLLO ✓</button>
+
+    <div class="overlay show" id="startOverlay">
+        <h2 style="font-size: 2.5rem; font-family: 'Fredoka One';">GATI? 🚀</h2>
+        <p style="font-size: 1.2rem; margin-bottom: 20px;">Nivele me sfida të ndryshme!</p>
+        <button class="btn-check" onclick="pressStart()">NIS LOJËN →</button>
+    </div>
+
+    <div class="overlay" id="winOverlay">
+        <h2 id="winTitle" style="font-size: 3rem; font-family: 'Fredoka One';">BRAVO! 🎉</h2>
+        <p id="winSub" style="font-size: 1.3rem; margin-bottom: 20px;"></p>
+        <button class="btn-check" id="nextBtn" style="background: white; color: var(--main-color);" onclick="startLevel()">VAZHDO →</button>
+    </div>
+
+    <script>
+        const MASTER_BANK = {
+            school: [
+                'Lapsi', 'Fletorja', 'Libri', 'Goma', 'Stilolapsi', 'Vizorja', 'Çanta', 'Ngjyrat', 
+                'Kalkulatori', 'Gërshëra', 'Ngjitësi', 'Dosja', 'Kompasi', 'Blloku', 'Peneli'
+            ],
+            home: [
+                'Krevati', 'Televizori', 'Tavolina', 'Karrigia', 'Divani', 'Pjata', 'Gota', 
+                'Soba', 'Frigoriferi', 'Pasqyra', 'Tapeti', 'Llamba', 'Peshqiri', 'Jastëku', 'Dollapi'
+            ],
+            animals: [
+                'Macja', 'Qeni', 'Luani', 'Lepuri', 'Ariu', 'Peshku', 'Zogu', 'Kali', 
+                'Gjirafa', 'Elefanti', 'Tigri', 'Majmuni', 'Dhelpra', 'Ujku', 'Breshka'
+            ],
+            people: [
+                'Mami', 'Babi', 'Gjyshi', 'Gjyshja', 'Vëllai', 'Motra', 'Mjeku', 
+                'Mësuesi', 'Polici', 'Halla', 'Piloti', 'Kuzhinieri', 'Shoku', 'Shoqja', 'Tezja'
+            ]
+        };
+
+        let currentLevel = 1;
+        let timer = null;
+        let timeLeft = 0;
+        let musicPlaying = false;
+        const audio = document.getElementById('bgMusic');
+
+        function pressStart() {
+            $('#startOverlay').removeClass('show');
+            playMusic();
+            startLevel();
+        }
+
+        function playMusic() {
+            audio.play().catch(e => console.log("Muzika u bllokua nga browser"));
+            musicPlaying = true;
+            $('#musicBtn').text('🔊');
+        }
+
+        function toggleMusic() {
+            if (musicPlaying) {
+                audio.pause();
+                $('#musicBtn').text('🔇');
+            } else {
+                audio.play();
+                $('#musicBtn').text('🔊');
+            }
+            musicPlaying = !musicPlaying;
+        }
+
+        function startLevel() {
+            $('#winOverlay').removeClass('show');
+            $('#lvl-display').text(currentLevel);
+            
+            timeLeft = (currentLevel === 1) ? 0 : 120;
+            $('#time-display').text(timeLeft > 0 ? timeLeft + "s" : "--");
+
+            setupWordsForLevel(currentLevel);
+            if(timeLeft > 0) startTimer();
+        }
+
+        function setupWordsForLevel(lvl) {
+            const $bank = $('#word-bank');
+            $('.drop-area').empty();
+            $bank.empty();
+
+            // Hide all zones
+            $('.zone').hide();
+
+            let selected = [];
+
+            if (lvl === 1) {
+                // Niveli 1: Kafshët dhe Njerëzit
+                $('#wrap-animals').show();
+                $('#wrap-people').show();
+                
+                let shufA = [...MASTER_BANK.animals].sort(() => 0.5 - Math.random()).slice(0, 5);
+                let shufP = [...MASTER_BANK.people].sort(() => 0.5 - Math.random()).slice(0, 5);
+                
+                selected = [
+                    ...shufA.map(x => ({t: x, c:'animals'})),
+                    ...shufP.map(x => ({t: x, c:'people'}))
+                ];
+            } 
+            else if (lvl === 2) {
+                // Niveli 2: Mjete Shkollore dhe Sende Shtëpie
+                $('#wrap-school').show();
+                $('#wrap-home').show();
+
+                let shufS = [...MASTER_BANK.school].sort(() => 0.5 - Math.random()).slice(0, 5);
+                let shufH = [...MASTER_BANK.home].sort(() => 0.5 - Math.random()).slice(0, 5);
+
+                selected = [
+                    ...shufS.map(x => ({t: x, c:'school'})), 
+                    ...shufH.map(x => ({t: x, c:'home'}))
+                ];
+            }
+            else {
+                // Niveli 3 e lart: Të katërta
+                $('.zone').show();
+
+                let perCat = 3 + (lvl - 3); // lvl 3 = 3 nga secila, lvl 4 = 4 nga secila
+                if (perCat > 5) perCat = 5;
+
+                let shufS = [...MASTER_BANK.school].sort(() => 0.5 - Math.random()).slice(0, perCat);
+                let shufH = [...MASTER_BANK.home].sort(() => 0.5 - Math.random()).slice(0, perCat);
+                let shufA = [...MASTER_BANK.animals].sort(() => 0.5 - Math.random()).slice(0, perCat);
+                let shufP = [...MASTER_BANK.people].sort(() => 0.5 - Math.random()).slice(0, perCat);
+                
+                selected = [
+                    ...shufS.map(x => ({t: x, c:'school'})), 
+                    ...shufH.map(x => ({t: x, c:'home'})),
+                    ...shufA.map(x => ({t: x, c:'animals'})),
+                    ...shufP.map(x => ({t: x, c:'people'}))
+                ];
+            }
+            
+            selected.sort(() => 0.5 - Math.random());
+
+            selected.forEach((item) => {
+                const $chip = $(`<div class="word-chip" data-correct="${item.c}">${item.t}</div>`);
+                $bank.append($chip);
+                
+                $chip.draggable({
+                    revert: "invalid",
+                    containment: "document",
+                    helper: "clone",
+                    start: function() { $(this).css('opacity', '0.3'); },
+                    stop: function() { $(this).css('opacity', '1'); }
+                });
+            });
+
+            $(".drop-area, #word-bank").droppable({
+                accept: ".word-chip",
+                hoverClass: "hover",
+                drop: function(event, ui) {
+                    ui.draggable.detach().appendTo($(this)).css({top: 0, left: 0});
+                }
+            });
+        }
+
+        function startTimer() {
+            clearInterval(timer);
+            timer = setInterval(() => {
+                timeLeft--;
+                $('#time-display').text(timeLeft + "s");
+                if(timeLeft <= 0) {
+                    clearInterval(timer);
+                    gameOver("KOHA MBAROI! ⏰", "Provoje përsëri!");
+                }
+            }, 1000);
+        }
+
+        function checkAnswers() {
+            if ($('#word-bank .word-chip').length > 0) {
+                alert("Tërhiqi të gjitha fjalët nëpër kuti!");
+                return;
+            }
+
+            let gabime = 0;
+            $('.word-chip').each(function() {
+                let parentCat = $(this).parent().data('cat');
+                if (parentCat !== $(this).data('correct')) {
+                    gabime++;
+                    $(this).css('border-color', 'red');
+                    $(this).css('background', '#fee2e2');
+                } else {
+                    $(this).css('border-color', 'var(--main-color)');
+                    $(this).css('background', 'white');
+                }
+            });
+
+            if (gabime === 0) {
+                clearInterval(timer);
+                currentLevel++;
+                showWin();
+            } else {
+                alert("Ke disa gabime! Fjalët me të kuqe janë gabim. 🧐");
+            }
+        }
+
+        function showWin() {
+            $('#winTitle').text("SHKËLQYESHËM! 🌟");
+            $('#winSub').text("Gati për nivelin e ri?");
+            $('#winOverlay').addClass('show');
+        }
+
+        function gameOver(title, sub) {
+            $('#winTitle').text(title);
+            $('#winSub').text(sub);
+            $('#nextBtn').text("RINIS").off().on('click', function() { currentLevel = 1; startLevel(); });
+            $('#winOverlay').addClass('show');
+        }
+    </script>
+</body>
+</html>
